@@ -6,9 +6,10 @@ An intelligent recruitment assistant that transforms natural language hiring que
 
 ## 🚀 Quick Setup
 
-### 1. Install & Run
+### 1. Install & Run - Install with node version 20 !
 ```bash
 cd ai-recruiter
+nvm use v20
 npm install
 npm run dev
 ```
