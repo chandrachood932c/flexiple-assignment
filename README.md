@@ -21,13 +21,13 @@ cp .env.example .env.local
 Populate the required environment variables:
 ```env
 GROQ_API_KEY='your_groq_api_key_here'
-GROQ_MODEL='llama-3.3-70b-versatile'
+GROQ_MODEL='openai/gpt-oss-20b'
 ```
 
-| Environment Variable | Required | Description |
+| Environment Variable | Description |
 |---|---|---|
-| `GROQ_API_KEY` | **Yes** | Your Groq Cloud API key ([Get one free at console.groq.com](https://console.groq.com/keys)) |
-| `GROQ_MODEL` | Optional | Groq LLM model ID (defaults to `llama-3.3-70b-versatile`) |
+| `GROQ_API_KEY` | Your Groq Cloud API key ([Get one free at console.groq.com](https://console.groq.com/keys)) |
+| `GROQ_MODEL` | Groq LLM model ID |
 
 ### 3. Run Development Server
 ```bash
