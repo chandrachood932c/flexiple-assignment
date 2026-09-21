@@ -14,10 +14,10 @@ npm install
 npm run dev
 ```
 
-### 2. Configure API Key in .env file
+### 2. Configure .env.local file
 ```bash
 GROQ_API_KEY='your_groq_api_key_here'
-GROQ_MODEL='your_groq_model_here' eg. openai/gpt-oss-20b
+GROQ_MODEL='your_groq_model_here' eg.'openai/gpt-oss-20b'
 ```
 
 Save env & run (http://localhost:3000) in your browser:
