@@ -12,13 +12,14 @@ import {
   buildRefinePrompt,
   buildScorePrompt
 } from '@/lib/utils';
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const PRIMARY_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+import { getGroqInstance } from '@/lib/groq';
 
 async function callLLM(systemPrompt, userContent) {
+
+  const { groq, model, apiKey } = await getGroqInstance();
+  
   const res = await groq.chat.completions.create({
-    model: PRIMARY_MODEL,
+    model,
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userContent }
@@ -291,9 +292,25 @@ export async function POST(req) {
 
   } catch (error) {
     console.error("API error in sourcing pipeline:", error);
+
+    let userMessage = error?.message || "Failed to process candidate search session.";
+    const errString = `${error?.name || ''} ${error?.message || ''} ${error?.status || ''}`.toLowerCase();
+
+    if (error?.status === 401 || errString.includes('401') || errString.includes('invalid_api_key') || errString.includes('invalid api key')) {
+      userMessage = "Invalid Groq API Key. Please verify and update your API key in 'API Settings' at the top of the page.";
+    } else if (error?.status === 404 || errString.includes('model_not_found') || errString.includes('does not exist')) {
+      userMessage = "Selected Groq model was not found or is unavailable. Please check the model ID in 'API Settings' (e.g., 'llama-3.3-70b-versatile').";
+    } else if (error?.status === 429 || errString.includes('rate_limit') || errString.includes('rate limit') || errString.includes('tokens per minute')) {
+      userMessage = "Groq API rate limit or quota exceeded. Please wait a moment before refining or search with another model.";
+    } else if (errString.includes('econnrefused') || errString.includes('enotfound') || errString.includes('fetch failed')) {
+      userMessage = "Network connection to Groq API failed. Please check your internet connection.";
+    } else if (errString.includes('api key is not configured')) {
+      userMessage = "Groq API Key is not configured. Please open 'API Settings' in the top bar and enter your API key.";
+    }
+
     return NextResponse.json(
-      { error: error.message || "Failed to process candidate search session." },
-      { status: 500 }
+      { error: userMessage },
+      { status: error?.status || 500 }
     );
   }
 }

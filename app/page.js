@@ -22,9 +22,12 @@ import {
   SlidersOutlined,
   RightOutlined,
   ThunderboltOutlined,
+  KeyOutlined, SettingOutlined 
 } from '@ant-design/icons';
+import { Modal, Input, Select, message, App } from "antd";
 
-export default function Home() {
+function RecruiterApp() {
+  const { message: toast } = App.useApp();
   const [query, setQuery] = useState('');
   const [feedback, setFeedback] = useState('');
 
@@ -40,6 +43,9 @@ export default function Home() {
 
   const [shortlistedIds, setShortlistedIds] = useState([]);
   const [rejectedIds, setRejectedIds] = useState([]);
+  const [showApiModal, setShowApiModal] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const [apiModel, setApiModel] = useState("");
 
   const [history, setHistory] = useState([]);
   const historyEndRef = useRef(null);
@@ -49,6 +55,64 @@ export default function Home() {
       behavior: 'smooth',
     });
   }, [history]);
+
+  useEffect(() => {
+    setShowApiModal(true);
+
+    const handleWindowError = (event) => {
+      const msg = event?.error?.message || event?.message || "An unexpected browser runtime error occurred.";
+      console.error("Runtime error caught:", event);
+      toast.error(msg);
+      setError(msg);
+    };
+
+    const handleUnhandledRejection = (event) => {
+      const reason = event?.reason;
+      const msg = reason?.message || (typeof reason === 'string' ? reason : "Unhandled asynchronous runtime error.");
+      console.error("Unhandled promise rejection caught:", reason);
+      toast.error(msg);
+      setError(msg);
+    };
+
+    window.addEventListener('error', handleWindowError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleWindowError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, [toast]);
+
+  const saveApiConfig = async () => {
+    try {
+      const response = await fetch("/api/refine-loop/api-config", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          apiKey,
+          apiModel,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const errMsg = data.error || "Failed to save API configuration";
+        setError(errMsg);
+        toast.error(errMsg);
+        return;
+      }
+
+      toast.success("API configuration saved successfully");
+      setShowApiModal(false);
+    } catch (err) {
+      const msg = err.message || "Failed to connect to configuration service.";
+      setError(msg);
+      toast.error(msg);
+    }
+  };
 
   const addToHistory = useCallback(
     (action, promptText, changelogText) => {
@@ -143,10 +207,12 @@ export default function Home() {
     } catch (err) {
       console.error(err);
 
-      setError(
+      const errorMsg =
         err.message ||
-          'An unexpected error occurred while communicating with the recruitment pipeline.'
-      );
+        'An unexpected error occurred while communicating with the recruitment pipeline.';
+
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -296,7 +362,13 @@ export default function Home() {
               </div>
             </div>
           </div>
-
+          <button
+            onClick={() => setShowApiModal(true)}
+            className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50"
+          >
+            <SettingOutlined />
+            API Settings
+          </button>
           <div className="flex items-center gap-2.5">
             {profiles.length > 0 && (
               <button
@@ -704,18 +776,36 @@ export default function Home() {
         <section className="min-w-0">
           {/* ERROR */}
           {error && (
-            <div className="mb-5 flex gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-5">
-              <ExclamationCircleOutlined className="mt-0.5 shrink-0 text-[18px] text-rose-500" />
-
-              <div>
-                <p className="text-[14px] font-semibold text-rose-800">
-                  Something went wrong
-                </p>
-
-                <p className="mt-1.5 text-[13px] leading-5 text-rose-700">
-                  {error}
-                </p>
+            <div className="mb-5 flex items-start justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-5">
+              <div className="flex gap-3">
+                <ExclamationCircleOutlined className="mt-0.5 shrink-0 text-[18px] text-rose-500" />
+                <div>
+                  <p className="text-[14px] font-semibold text-rose-800">
+                    Search Error
+                  </p>
+                  <p className="mt-1.5 text-[13px] leading-5 text-rose-700">
+                    {error}
+                  </p>
+                  {(error.toLowerCase().includes('api key') || error.toLowerCase().includes('model') || error.toLowerCase().includes('settings')) && (
+                    <button
+                      type="button"
+                      onClick={() => setShowApiModal(true)}
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-rose-700"
+                    >
+                      <KeyOutlined className="text-[13px]" />
+                      Open API Settings
+                    </button>
+                  )}
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setError(null)}
+                className="rounded-lg p-1 text-rose-400 transition hover:bg-rose-100 hover:text-rose-600"
+                aria-label="Dismiss error"
+              >
+                <CloseOutlined className="text-[12px]" />
+              </button>
             </div>
           )}
 
@@ -1039,6 +1129,57 @@ export default function Home() {
           )}
         </section>
       </main>
+      <Modal
+        title="API Credentials"
+        open={showApiModal}
+        onCancel={() => setShowApiModal(false)}
+        footer={null}
+        centered
+      >
+        <div className="space-y-5 pt-3">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              API Key
+            </label>
+
+            <Input.Password
+              prefix={<KeyOutlined />}
+              placeholder="Enter your API key"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Model
+            </label>
+
+            <Input
+              className="w-full"
+              value={apiModel}
+              onChange={(e) => setApiModel(e.target.value)}
+              placeholder="Enter your api model ex. openai/gpt-oss-20b"
+            />
+          </div>
+
+          <button
+            onClick={saveApiConfig}
+            disabled={!apiKey.trim()}
+            className="w-full rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Save Settings
+          </button>
+        </div>
+      </Modal>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <App>
+      <RecruiterApp />
+    </App>
   );
 }

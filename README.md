@@ -4,126 +4,136 @@ An intelligent recruitment assistant that transforms natural language hiring que
 
 ---
 
-##  Quick Setup
+## 🚀 Quick Setup
 
-### 1. Clone & Install Dependencies
+### 1. Install & Run
 ```bash
 cd ai-recruiter
 npm install
-```
-
-### 2. Configure Environment Variables
-Create a `.env.local` file in the root directory:
-```bash
-cp .env.example .env.local
-```
-
-Populate the required environment variables:
-```env
-GROQ_API_KEY='your_groq_api_key_here'
-GROQ_MODEL='llama-3.3-70b-versatile'
-```
-
-| Environment Variable | Required | Description |
-|---|---|---|
-| `GROQ_API_KEY` | **Yes** | Your Groq Cloud API key ([Get one free at console.groq.com](https://console.groq.com/keys)) |
-| `GROQ_MODEL` | Optional | Groq LLM model ID (defaults to `llama-3.3-70b-versatile`) |
-
-### 3. Run Development Server
-```bash
 npm run dev
 ```
-Open **[http://localhost:3000](http://localhost:3000)** in your browser.
+
+### 2. Configure API Key & Model in UI
+Open **[http://localhost:3000](http://localhost:3000)** in your browser:
+- On initial launch, an **API Settings** modal opens automatically (you can also reopen it anytime via the **API Settings** button in the top navigation).
+- Enter your **Groq API Key** ([Get a free key at console.groq.com](https://console.groq.com/keys)).
+- Enter your model (e.g. `llama-3.3-70b-versatile` or `openai/gpt-oss-20b`).
+- Click **Save Settings**. The credentials are stored securely in session state.
 
 ---
 
 ## 🧠 System Architecture & Workflow
 
 ```
-[ Natural Language Query ]
-            │
-            ▼
-┌──────────────────────────────────────┐
-│  1. LLM Filter & Rubric Extraction   │ ──► Extracts objective criteria + weighted rubric
-└──────────────────────────────────────┘
-            │
-            ▼
-┌──────────────────────────────────────┐
-│  2. Deterministic Filtering Engine   │ ──► Hard filtering on skills, exp, location, domain
-└──────────────────────────────────────┘
-            │
-            ▼
-┌──────────────────────────────────────┐
-│  3. Rubric Scoring & Match Citation  │ ──► Scores candidates (0-100%) with concrete evidence
-└──────────────────────────────────────┘
-            │
-            ▼
-┌──────────────────────────────────────┐
-│  4. Interactive Refinement Loop      │ ──► 1-Click Match/Reject or feedback prompt updates
-└──────────────────────────────────────┘     rubric & maintains chronological activity history
+[ Recruiter Query / Feedback ]
+              │
+              ▼
+┌─────────────────────────────────────────┐
+│ 1. AI Parameter & Rubric Extraction     │ ──► Extracts hard filters (min/max exp, role, skills)
+│    (Groq LLM via /api/refine-loop)      │     and builds subjective criteria with weights
+└─────────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────────┐
+│ 2. Deterministic Filtering Engine       │ ──► Validates hard boundaries in code:
+│    (Local Rule Safeguards)              │     • Min & max experience bounds
+│                                         │     • Role domain & locations
+│                                         │     • Progressive relaxation if 0 matches
+└─────────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────────┐
+│ 3. Rubric Scoring & Evidence Citations  │ ──► Scores candidates (0–100%) against all profile keys
+│    (Evidence-Based Evaluation)          │     (title, skills, companies, education, exp)
+└─────────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────────┐
+│ 4. Interactive Refinement Loop          │ ──► One-click feedback or conversational steering
+│    (Candidate State & Activity Log)     │     updates rubrics, preserves shortlists, and logs history
+└─────────────────────────────────────────┘
 ```
 
 ---
 
-##  Screen Layout & User Experience
+## 🖥️ Screen Layout & Interactive Features (`app/page.js`)
 
 Designed specifically for recruiter velocity and cognitive clarity:
 
-- **Left Column (Sidebar)**:
-  - **Find Candidates / Refine Search**: Initial search box or feedback input to steer the search (e.g., *"prioritize candidate #2"*).
-  - **Search Criteria & Rubric**: Displays active filters (role focus, min experience, skills, locations, company types with click `×` to remove), latest changelog, and weighted fit signals.
-  - **Activity Log**: Chronological timeline showing every action, prompt, time, and changelog update.
-- **Right Column (Candidate Matches)**:
-  - **Match Cards**: Ranked profiles showing match score percentage, job title, company, location, experience, concrete evidence ("Why this candidate matches"), and skill tags.
-  - **1-Click Feedback**: `Strong match` and `Not a fit` buttons to immediately calibrate results.
-- **Header Actions**:
-  - **Freeze / Unfreeze Search**: Lock candidate results to prevent drift, or unfreeze to continue refining.
-  - **New Search**: Reset the entire session back to a clean state.
+### 1. Header Navigation
+- **Branding & Status**: Shows active recruitment session status.
+- **API Settings**: Quick modal to inspect or update the Groq API key and model.
+- **New Search (`handleReset`)**: Clears queries, filters, rubrics, shortlist, and resets the activity log.
+- **Freeze / Unfreeze Search**:
+  - `Freeze search`: Locks candidate cards to prevent accidental changes while sharing or reviewing.
+  - `Unfreeze search`: Unlocks cards to continue conversational refinements.
+
+### 2. Left Column (Control Sidebar)
+- **Find Candidates / Refine Search**:
+  - **Initial State**: Natural language prompt input (e.g., *"Senior React developers with 4–7 years of experience, startup background, based in Bangalore"*).
+  - **Refinement State**: Once a search has run, switches to an interactive feedback bar (e.g., *"Candidate #2 is a great fit, prioritize similar startup background"*).
+- **Search Criteria Panel**:
+  - **Changelog Banner**: Displays real-time summary of the latest AI modifications.
+  - **Interactive Filter Pills**: Badges for Role, Experience range, Skills, Locations, and Company Types.
+  - **Click-to-Remove (`×`)**: Click any pill to remove a skill, location, or company type on the fly without re-typing.
+- **Fit Signals (Rubric)**:
+  - Displays each subjective quality standard with priority level (`HIGH`, `MEDIUM`, `LOW`).
+- **Activity Log**:
+  - Chronological timeline tracking every action (`Search`, `Refined`, `Filter`), timestamp, prompt text, and corresponding changelog.
+
+### 3. Right Column (Candidate Results)
+- **Ranked Match Cards**:
+  - **Fit Score Badge**: Color-coded percentage match (0–100%) and fit status (`strong_match`).
+  - **Candidate Header**: Full name, current title, company name, location, and years of experience.
+  - **Why this candidate matches**: Factual citations referencing candidate tools, company pedigree, and experience.
+  - **Interactive Feedback Buttons**:
+    - `Strong match` (thumbs-up): Shortlists the candidate and automatically tells the AI to prioritize similar profiles.
+    - `Not a fit` (thumbs-down): Rejects the candidate and steers the search away from those gaps.
 
 ---
 
-##  Engineering Decisions: What Was Prioritised & What Was Cut
+## 📋 Evaluated Candidate Profile Parameters
 
-### What Was Prioritised (and Why)
+Candidates in `profiles.json` are evaluated across these explicit keys:
 
-1. **Rule-Based Safeguards for Experience & Role Limits (`route.js`)**
-   - *Why*: AI sometimes gets numbers wrong (like forgetting to reset minimum experience when you say *"less than 8 years"*). We added simple code checks on top of the AI output to make sure experience limits and job roles are always 100% accurate.
-
-2. **Filter First in Code, Score Later with AI (`route.js`)**
-   - *Why*: Sending dozens of raw candidate profiles to an AI is slow and expensive. We first filter candidates in fast code using hard rules (years of experience, role, and location), and then ask the AI to score only the top matching profiles.
-
-3. **Real, Fact-Based Reasons for Every Match (`prompt.js`)**
-   - *Why*: Recruiters need to know *why* a candidate fits. Our scoring prompt requires the AI to mention real details from the candidate's profile—like past companies, tools used, and years of experience—instead of vague praise.
-
-4. **Step-by-Step Search Updates with a Clear Changelog (`prompt.js` & `route.js`)**
-   - *Why*: Sourcing talent is an ongoing conversation. When you give feedback, the prompt updates your criteria without erasing your earlier requirements, and shows a short summary of what changed.
-
-5. **Smart Fallback When No Candidates Match (`route.js`)**
-   - *Why*: A blank screen wastes time. If zero candidates match your exact search, the system gently broadens secondary details (like location or company type) and tells you with a clear note, while never breaking your required experience limits.
-
----
-
-### What Was Cut (and Why)
-
-1. **Asking the AI to Filter Every Profile Directly**
-   - *Why*: Having an AI read all candidate records to filter them is slow and can lead to missed requirements. Filtering candidates directly in code first is much faster and completely reliable.
-
-2. **Heavy AI Libraries (like LangChain)**
-   - *Why*: Big AI framework libraries add extra bloat, slow down responses, and make debugging harder. Simple, direct API calls keep searches fast and easy to maintain.
-
-3. **Keyword-Only or Vector Similarity Search**
-   - *Why*: Matching candidates only by similar words often brings up buzzwords while missing hard requirements (like showing someone with 2 years of experience for a senior job). Structured criteria plus rubric scoring gives much better results.
-
-4. **Databases & User Logins**
-   - *Why*: Requiring database setup or sign-ups creates friction. Storing candidate profiles in a simple local file lets anyone clone the project, add their API key, and test it in seconds.
+| Parameter | Type | How It Is Evaluated & Compared |
+|---|---|---|
+| `id` | String | Unique profile ID (e.g., `"p29"`). |
+| `name` | String | Full candidate name. |
+| `current_title` | String | Role title; matched against target engineering domains (`Frontend`, `Backend`, `DevOps`, etc.). |
+| `years_experience` | Number | Total career experience; strictly validated by code regex against `min_exp` and `max_exp`. |
+| `location` | String | Primary city or remote status (e.g., `"Bangalore"`, `"Amsterdam"`). |
+| `current_company` | String | Employer where candidate currently works (e.g., `"Postman"`). |
+| `current_company_type` | String | Organization category: `startup`, `scaleup`, `enterprise`, or `service`. |
+| `skills` | Array | Core proficiencies and tools (e.g., `["PostgreSQL", "AWS RDS", "Terraform"]`). |
+| `past_companies` | Array | Prior career history, titles, company types, and tenures (e.g. at `Razorpay`). |
+| `education` | String | Academic background and institution tier (e.g., `"B.E. Computer Science, BITS Pilani"`). |
+| `summary` | String | High-level engineering focus and domain highlights. |
 
 ---
 
-## Try These Prompts to Evaluate
+## ⚙️ Search & Filter Parameters
 
-- **DevOps / Cloud Role:**
+### 1. Objective Filters (Hard Code Rules)
+- **`role_focus`**: Primary technical focus (`Frontend`, `Backend`, `Full Stack`, `DevOps`, `Data`).
+- **`min_exp` & `max_exp`**: Hard numerical bounds on years of experience.
+- **`skills`**: Mandatory or preferred technologies.
+- **`locations`**: Target cities or remote options.
+- **`company_types`**: Preferred company stages (e.g., `["startup", "scaleup"]`).
+
+### 2. Subjective Rubric (Fit & Ranking)
+- **`title`**: Evaluation dimension (e.g., *"Scaleup Reliability Pedigree"*).
+- **`weight`**: Priority weight (`high`, `medium`, `low`).
+- **`guideline`**: Explicit benchmark evaluating exact candidate skills, company background, and depth.
+- **`changelog`**: Human-readable summary of every change made during refinements.
+
+---
+
+## 💡 Example Prompts to Test
+
+- **Initial Search (DevOps / Cloud):**
   > *"DevOps engineer with minimum 4 years experience who has worked with Kubernetes and AWS, based in Bangalore."*
-- **Refinement Feedback:**
-  > *"Candidate #1 is a great fit, but prioritize candidates with startup infrastructure experience."*
-- **Backend / Database Role:**
-  > *"RDS developers with 4-7 years of experience who have worked at product startups."*
+- **Refinement (Candidate-Based Steering):**
+  > *"Candidate #1 is a great fit, prioritize candidates with similar scaleup infrastructure background."*
+- **Experience Bound Updates:**
+  > *"Actually, we only want candidates with less than 6 years of experience."*
