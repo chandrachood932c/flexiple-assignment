@@ -13,13 +13,12 @@ npm install
 npm run dev
 ```
 
-### 2. Configure API Key & Model in UI
-Open **[http://localhost:3000](http://localhost:3000)** in your browser:
-- On initial launch, an **API Settings** modal opens automatically (you can also reopen it anytime via the **API Settings** button in the top navigation).
-- Enter your **Groq API Key** ([Get a free key at console.groq.com](https://console.groq.com/keys)).
-- Enter your model (e.g. `llama-3.3-70b-versatile` or `openai/gpt-oss-20b`).
-- Click **Save Settings**. The credentials are stored securely in session state.
+### 2. Configure API Key in .env file
 
+GROQ_API_KEY='your_groq_api_key_here'
+GROQ_MODEL='your_groq_model_here' eg. openai/gpt-oss-20b
+
+Save env & run **[http://localhost:3000](http://localhost:3000)** in your browser:
 ---
 
 ## 🧠 System Architecture & Workflow

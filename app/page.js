@@ -57,7 +57,7 @@ function RecruiterApp() {
   }, [history]);
 
   useEffect(() => {
-    setShowApiModal(true);
+    // setShowApiModal(true);
 
     const handleWindowError = (event) => {
       const msg = event?.error?.message || event?.message || "An unexpected browser runtime error occurred.";
@@ -362,13 +362,13 @@ function RecruiterApp() {
               </div>
             </div>
           </div>
-          <button
+          {/* <button
             onClick={() => setShowApiModal(true)}
             className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50"
           >
             <SettingOutlined />
             API Settings
-          </button>
+          </button> */}
           <div className="flex items-center gap-2.5">
             {profiles.length > 0 && (
               <button

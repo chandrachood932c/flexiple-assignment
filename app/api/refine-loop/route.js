@@ -12,14 +12,14 @@ import {
   buildRefinePrompt,
   buildScorePrompt
 } from '@/lib/utils';
-import { getGroqInstance } from '@/lib/groq';
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const PRIMARY_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
 
 async function callLLM(systemPrompt, userContent) {
 
-  const { groq, model, apiKey } = await getGroqInstance();
-  
   const res = await groq.chat.completions.create({
-    model,
+    model: PRIMARY_MODEL,
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userContent }
